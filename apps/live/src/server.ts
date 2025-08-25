@@ -57,7 +57,7 @@ export class Server {
     this.router.ws("/collaboration", (ws: any, req: Request) => {
       try {
         this.hocuspocusServer.handleConnection(ws, req);
-      } catch (err) {
+      } catch (err: any) {
         manualLogger.error("WebSocket connection error:", err);
         ws.close();
       }
@@ -80,7 +80,7 @@ export class Server {
           description,
           description_binary,
         });
-      } catch (error) {
+      } catch (error: any) {
         manualLogger.error("Error in /convert-document endpoint:", error);
         res.status(500).json({
           message: `Internal server error.`,
