@@ -1,0 +1,67 @@
+name: Build & Publish Plane Web
+
+on:
+  push:
+    branches: [ custom-nonna-code ]
+    # Rebuild when the web app or shared packages change
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - 'turbo.json'
+  workflow_dispatch:
+
+# Required for GHCR with GITHUB_TOKEN
+permissions:
+  contents: read
+  packages: write
+
+env:
+  # GHCR image name; GHCR paths are lower-case
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/plane-web
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags & labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha
+            # Nice to have a static tag tied to this base; optional
+            type=raw,value=v0.28.0-fork
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push (linux/amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile.web
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
