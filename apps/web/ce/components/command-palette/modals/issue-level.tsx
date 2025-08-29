@@ -7,7 +7,7 @@ import { EIssueServiceType, EIssuesStoreType, TIssue } from "@plane/types";
 import { BulkDeleteIssuesModal } from "@/components/core";
 import { CreateUpdateIssueModal, DeleteIssueModal } from "@/components/issues";
 // hooks
-import { useCommandPalette, useIssueDetail, useUser } from "@/hooks/store";
+import { useCommandPalette, useIssueDetail, useUser, useIssues } from "@/hooks/store";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
 
@@ -39,7 +39,14 @@ export const IssueLevelModals: FC<TIssueLevelModalsProps> = observer((props) => 
     isBulkDeleteIssueModalOpen,
     toggleBulkDeleteIssueModal,
     createWorkItemAllowedProjectIds,
+    createIssueStoreType,
   } = useCommandPalette();
+
+  // Get current view filters for PROJECT_VIEW context
+  const {
+    issuesFilter: { issueFilters },
+  } = useIssues(EIssuesStoreType.PROJECT_VIEW);
+
   // derived values
   const issueDetails = issueId ? getIssueById(issueId) : undefined;
   const isDraftIssue = pathname?.includes("draft-issues") || false;
@@ -67,8 +74,43 @@ export const IssueLevelModals: FC<TIssueLevelModalsProps> = observer((props) => 
   };
 
   const getCreateIssueModalData = () => {
+    // Handle cycle and module contexts first
     if (cycleId) return { cycle_id: cycleId.toString() };
     if (moduleId) return { module_ids: [moduleId.toString()] };
+
+    // Handle project view context - extract relevant filters
+    if (createIssueStoreType === EIssuesStoreType.PROJECT_VIEW && issueFilters?.filters) {
+      const viewFilters = issueFilters.filters;
+      const modalData: Partial<TIssue> = {};
+
+      // Extract priority filter (take the first one if multiple are selected)
+      if (viewFilters.priority && viewFilters.priority.length > 0) {
+        modalData.priority = viewFilters.priority[0];
+      }
+
+      // Extract assignee filter (take the first one if multiple are selected)
+      if (viewFilters.assignees && viewFilters.assignees.length > 0) {
+        modalData.assignee_ids = [viewFilters.assignees[0]];
+      }
+
+      // Extract cycle filter (take the first one if multiple are selected)
+      if (viewFilters.cycle && viewFilters.cycle.length > 0) {
+        modalData.cycle_id = viewFilters.cycle[0];
+      }
+
+      // Extract module filter
+      if (viewFilters.module && viewFilters.module.length > 0) {
+        modalData.module_ids = viewFilters.module;
+      }
+
+      // Extract label filter
+      if (viewFilters.labels && viewFilters.labels.length > 0) {
+        modalData.label_ids = viewFilters.labels;
+      }
+
+      return modalData;
+    }
+
     return undefined;
   };
 
