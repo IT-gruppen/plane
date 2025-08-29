@@ -2,7 +2,7 @@ import { FC } from "react";
 import { observer } from "mobx-react";
 import { useParams, usePathname } from "next/navigation";
 // plane imports
-import { EIssueServiceType, EIssuesStoreType, TIssue } from "@plane/types";
+import { EIssueServiceType, EIssuesStoreType, TIssue, type TIssuePriorities } from "@plane/types";
 // components
 import { BulkDeleteIssuesModal } from "@/components/core";
 import { CreateUpdateIssueModal, DeleteIssueModal } from "@/components/issues";
@@ -85,7 +85,7 @@ export const IssueLevelModals: FC<TIssueLevelModalsProps> = observer((props) => 
 
       // Extract priority filter (take the first one if multiple are selected)
       if (viewFilters.priority && viewFilters.priority.length > 0) {
-        modalData.priority = viewFilters.priority[0];
+        modalData.priority = viewFilters.priority[0] as TIssuePriorities;
       }
 
       // Extract assignee filter (take the first one if multiple are selected)
