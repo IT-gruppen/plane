@@ -6,9 +6,10 @@ import { useInstance } from "@/hooks/store";
 
 type TOAuthOptionProps = {
   isSignUp?: boolean;
+  showOr?: boolean
 };
 
-export const OAuthOptions: React.FC<TOAuthOptionProps> = observer(() => {
+export const OAuthOptions: React.FC<TOAuthOptionProps> = observer(({showOr = true}) => {
   // hooks
   const { config } = useInstance();
 
@@ -19,11 +20,13 @@ export const OAuthOptions: React.FC<TOAuthOptionProps> = observer(() => {
 
   return (
     <>
-      <div className="mt-4 flex items-center">
-        <hr className="w-full border-onboarding-border-100" />
-        <p className="mx-3 flex-shrink-0 text-center text-sm text-onboarding-text-400">or</p>
-        <hr className="w-full border-onboarding-border-100" />
-      </div>
+      {showOr &&
+        <div className="mt-4 flex items-center">
+          <hr className="w-full border-onboarding-border-100" />
+          <p className="mx-3 flex-shrink-0 text-center text-sm text-onboarding-text-400">or</p>
+          <hr className="w-full border-onboarding-border-100" />
+        </div>
+      }
       <div className={`mt-7 grid gap-4 overflow-hidden`}>
         {config?.is_google_enabled && (
           <div className="flex h-[42px] items-center !overflow-hidden">

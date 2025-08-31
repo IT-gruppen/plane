@@ -30,7 +30,7 @@ export const useExportColumns = () => {
                 </span>
               ) : (
                 <span className="relative flex h-4 w-4 items-center justify-center rounded-full bg-gray-700 capitalize text-white text-xs">
-                  {(email ?? display_name ?? "?")[0]}
+                  {(email ?? display_name ?? "??").slice(0, 2)}
                 </span>
               )}
             </div>

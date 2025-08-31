@@ -44,6 +44,7 @@ export const AuthRoot: FC<TAuthRoot> = observer((props) => {
   const workspaceSlug = searchParams.get("slug");
   const error_code = searchParams.get("error_code");
   const nextPath = searchParams.get("next_path");
+  const enablePassword = searchParams.get("enable_password");
   // props
   const { authMode: currentAuthMode } = props;
   // states
@@ -169,34 +170,38 @@ export const AuthRoot: FC<TAuthRoot> = observer((props) => {
         authMode={authMode}
         currentAuthStep={authStep}
       >
-        {errorInfo && errorInfo?.type === EErrorAlertType.BANNER_ALERT && (
-          <AuthBanner bannerData={errorInfo} handleBannerData={(value) => setErrorInfo(value)} />
-        )}
-        {authStep === EAuthSteps.EMAIL && <AuthEmailForm defaultEmail={email} onSubmit={handleEmailVerification} />}
-        {authStep === EAuthSteps.UNIQUE_CODE && (
-          <AuthUniqueCodeForm
-            mode={authMode}
-            email={email}
-            isExistingEmail={isExistingEmail}
-            handleEmailClear={handleEmailClear}
-            generateEmailUniqueCode={generateEmailUniqueCode}
-            nextPath={nextPath || undefined}
-          />
-        )}
-        {authStep === EAuthSteps.PASSWORD && (
-          <AuthPasswordForm
-            mode={authMode}
-            isSMTPConfigured={isSMTPConfigured}
-            email={email}
-            handleEmailClear={handleEmailClear}
-            handleAuthStep={(step: EAuthSteps) => {
-              if (step === EAuthSteps.UNIQUE_CODE) generateEmailUniqueCode(email);
-              setAuthStep(step);
-            }}
-            nextPath={nextPath || undefined}
-          />
-        )}
-        <OAuthOptions isSignUp={authMode === EAuthModes.SIGN_UP} />
+        {enablePassword === 'true' &&
+          <>
+            {errorInfo && errorInfo?.type === EErrorAlertType.BANNER_ALERT && (
+              <AuthBanner bannerData={errorInfo} handleBannerData={(value) => setErrorInfo(value)} />
+            )}
+            {authStep === EAuthSteps.EMAIL && <AuthEmailForm defaultEmail={email} onSubmit={handleEmailVerification} />}
+            {authStep === EAuthSteps.UNIQUE_CODE && (
+              <AuthUniqueCodeForm
+                mode={authMode}
+                email={email}
+                isExistingEmail={isExistingEmail}
+                handleEmailClear={handleEmailClear}
+                generateEmailUniqueCode={generateEmailUniqueCode}
+                nextPath={nextPath || undefined}
+              />
+            )}
+            {authStep === EAuthSteps.PASSWORD && (
+              <AuthPasswordForm
+                mode={authMode}
+                isSMTPConfigured={isSMTPConfigured}
+                email={email}
+                handleEmailClear={handleEmailClear}
+                handleAuthStep={(step: EAuthSteps) => {
+                  if (step === EAuthSteps.UNIQUE_CODE) generateEmailUniqueCode(email);
+                  setAuthStep(step);
+                }}
+                nextPath={nextPath || undefined}
+              />
+            )}
+          </>
+        }
+        <OAuthOptions isSignUp={authMode === EAuthModes.SIGN_UP} showOr={enablePassword !== true} />
         <TermsAndConditions isSignUp={authMode === EAuthModes.SIGN_UP} />
       </AuthHeader>
     </div>

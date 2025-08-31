@@ -136,7 +136,7 @@ export const Avatar: React.FC<Props> = (props) => {
   }
 
   return (
-    <Tooltip tooltipContent={fallbackText ?? name ?? "?"} disabled={!showTooltip}>
+    <Tooltip tooltipContent={fallbackText ?? name ?? "??"} disabled={!showTooltip}>
       <div
         className={cn("grid place-items-center overflow-hidden", getBorderRadius(shape), {
           [sizeInfo.avatarSize]: !isAValidNumber(size),
@@ -166,7 +166,7 @@ export const Avatar: React.FC<Props> = (props) => {
               color: fallbackTextColor ?? "#ffffff",
             }}
           >
-            {getInitials(name) ?? fallbackText ?? "?"}
+            {getInitials(name) ?? fallbackText ?? "??"}
           </div>
         )}
       </div>
