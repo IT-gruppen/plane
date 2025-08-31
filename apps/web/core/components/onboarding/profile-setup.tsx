@@ -91,8 +91,9 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
   const workspaceSlug = userSettings?.workspace.fallback_workspace_slug || "";
 
   // states
-  const [profileSetupStep, setProfileSetupStep] = useState<EProfileSetupSteps>(
-    user?.is_password_autoset ? EProfileSetupSteps.USER_DETAILS : EProfileSetupSteps.ALL
+  const [profileSetupStep, _setProfileSetupStep] = useState<EProfileSetupSteps>(
+    //user?.is_password_autoset ? EProfileSetupSteps.USER_DETAILS : EProfileSetupSteps.ALL
+    EProfileSetupSteps.ALL
   );
   const [isImageUploadModalOpen, setIsImageUploadModalOpen] = useState(false);
   const [isPasswordInputFocused, setIsPasswordInputFocused] = useState(false);
@@ -120,6 +121,8 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
       ...defaultValues,
       first_name: user?.email.split("@")[0] ?? "Ildsjel",
       last_name: "(Frivillig)",
+      role: 'Individual contributor',
+      use_case: 'Other',
       avatar_url: user?.avatar_url,
     },
     mode: "onChange",
@@ -130,16 +133,16 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
   const handleShowPassword = (key: keyof typeof showPassword) =>
     setShowPassword((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const handleSetPassword = async (password: string) => {
-    const token = await authService.requestCSRFToken().then((data) => data?.csrf_token);
-    await authService.setPassword(token, { password });
-  };
+  // const handleSetPassword = async (password: string) => {
+  //   const token = await authService.requestCSRFToken().then((data) => data?.csrf_token);
+  //   await authService.setPassword(token, { password });
+  // };
 
   const handleSubmitProfileSetup = async (formData: TProfileSetupFormValues) => {
     const userDetailsPayload: Partial<IUser> = {
-      first_name: formData.first_name,
+      first_name: user?.email.split("@")[0] ?? "Ildsjel",
       last_name: `(${formData.role})`,
-      display_name: formData.first_name,
+      display_name: user?.email.split("@")[0] ?? "Ildsjel",
       avatar_url: formData.avatar_url ?? undefined,
       user_timezone: "Europe/Paris", // Default timezone for new users
     };
@@ -168,11 +171,16 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
           .catch(console.error),
         totalSteps > 2 && stepChange({ profile_complete: true }),
       ]);
+      await Promise.all([
+        userService.currentUser(),
+        userService.getCurrentUserProfile(),
+        userService.currentUserSettings(),
+      ]).catch(console.error);
       captureSuccess({
         eventName: USER_TRACKER_EVENTS.add_details,
         payload: {
-          use_case: formData.use_case,
-          role: formData.role,
+          use_case: 'Other',
+          role: 'Individual contributor',
         },
       });
       setToast({
@@ -182,7 +190,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
       });
       // For Invited Users, they will skip all other steps and finish onboarding.
       if (totalSteps <= 2) {
-        finishOnboarding();
+        finishOnboarding()
       }
     } catch {
       captureError({
@@ -196,75 +204,76 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
     }
   };
 
-  const handleSubmitUserDetail = async (formData: TProfileSetupFormValues) => {
-    const userDetailsPayload: Partial<IUser> = {
-      first_name: formData.first_name,
-      last_name: formData.last_name,
-      avatar_url: formData.avatar_url ?? undefined,
-    };
-    try {
-      await Promise.all([
-        updateCurrentUser(userDetailsPayload),
-        formData.password && handleSetPassword(formData.password),
-      ]).then(() => setProfileSetupStep(EProfileSetupSteps.USER_PERSONALIZATION));
-    } catch {
-      captureError({
-        eventName: USER_TRACKER_EVENTS.add_details,
-      });
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Error",
-        message: "User details update failed. Please try again!",
-      });
-    }
-  };
+  // const handleSubmitUserDetail = async (formData: TProfileSetupFormValues) => {
+  //   const userDetailsPayload: Partial<IUser> = {
+  //     first_name: formData.first_name,
+  //     last_name: `(${formData.role})`,
+  //     avatar_url: formData.avatar_url ?? undefined,
+  //   };
+  //   try {
+  //     await Promise.all([
+  //       updateCurrentUser(userDetailsPayload),
+  //       formData.password && handleSetPassword(formData.password),
+  //     ]).then(() => setProfileSetupStep(EProfileSetupSteps.USER_PERSONALIZATION));
+  //   } catch {
+  //     captureError({
+  //       eventName: USER_TRACKER_EVENTS.add_details,
+  //     });
+  //     setToast({
+  //       type: TOAST_TYPE.ERROR,
+  //       title: "Error",
+  //       message: "User details update failed. Please try again!",
+  //     });
+  //   }
+  // };
 
-  const handleSubmitUserPersonalization = async (formData: TProfileSetupFormValues) => {
-    const profileUpdatePayload: Partial<TUserProfile> = {
-      use_case: formData.use_case,
-      role: formData.role,
-    };
-    try {
-      await Promise.all([
-        updateUserProfile(profileUpdatePayload),
-        totalSteps > 2 && stepChange({ profile_complete: true }),
-      ]);
-      captureSuccess({
-        eventName: USER_TRACKER_EVENTS.add_details,
-        payload: {
-          use_case: formData.use_case,
-          role: formData.role,
-        },
-      });
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Success",
-        message: "Profile setup completed!",
-      });
-      // For Invited Users, they will skip all other steps and finish onboarding.
-      if (totalSteps <= 2) {
-        finishOnboarding();
-      }
-    } catch {
-      captureError({
-        eventName: USER_TRACKER_EVENTS.add_details,
-      });
-      setToast({
-        type: TOAST_TYPE.ERROR,
-        title: "Error",
-        message: "Profile setup failed. Please try again!",
-      });
-    }
-  };
+  // const handleSubmitUserPersonalization = async (formData: TProfileSetupFormValues) => {
+  //   const profileUpdatePayload: Partial<TUserProfile> = {
+  //     use_case: "Other",
+  //     role: "Individual contributor",
+  //   };
+  //   try {
+  //     await Promise.all([
+  //       updateUserProfile(profileUpdatePayload),
+  //       totalSteps > 2 && stepChange({ profile_complete: true }),
+  //     ]);
+  //     captureSuccess({
+  //       eventName: USER_TRACKER_EVENTS.add_details,
+  //       payload: {
+  //         use_case: formData.use_case,
+  //         role: formData.role,
+  //       },
+  //     });
+  //     setToast({
+  //       type: TOAST_TYPE.SUCCESS,
+  //       title: "Success",
+  //       message: "Profile setup completed!",
+  //     });
+  //     // For Invited Users, they will skip all other steps and finish onboarding.
+  //     if (totalSteps <= 2) {
+  //       finishOnboarding();
+  //     }
+  //   } catch {
+  //     captureError({
+  //       eventName: USER_TRACKER_EVENTS.add_details,
+  //     });
+  //     setToast({
+  //       type: TOAST_TYPE.ERROR,
+  //       title: "Error",
+  //       message: "Profile setup failed. Please try again!",
+  //     });
+  //   }
+  // };
 
   const onSubmit = async (formData: TProfileSetupFormValues) => {
     if (!user) return;
     captureView({
       elementName: ONBOARDING_TRACKER_ELEMENTS.PROFILE_SETUP_FORM,
     });
-    if (profileSetupStep === EProfileSetupSteps.ALL) await handleSubmitProfileSetup(formData);
-    if (profileSetupStep === EProfileSetupSteps.USER_DETAILS) await handleSubmitUserDetail(formData);
-    if (profileSetupStep === EProfileSetupSteps.USER_PERSONALIZATION) await handleSubmitUserPersonalization(formData);
+    // if (profileSetupStep === EProfileSetupSteps.ALL) await handleSubmitProfileSetup(formData);
+    // if (profileSetupStep === EProfileSetupSteps.USER_DETAILS) await handleSubmitUserDetail(formData);
+    // if (profileSetupStep === EProfileSetupSteps.USER_PERSONALIZATION) await handleSubmitUserPersonalization(formData);
+    await handleSubmitProfileSetup(formData);
   };
 
   const handleDelete = (url: string | null | undefined) => {

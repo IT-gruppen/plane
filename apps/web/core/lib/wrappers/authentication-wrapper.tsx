@@ -43,11 +43,12 @@ export const AuthenticationWrapper: FC<TAuthenticationWrapper> = observer((props
   });
 
   const isUserOnboard =
-    currentUserProfile?.is_onboarded ||
+    searchParams.get("reonboard") !== "true" &&
+    (currentUserProfile?.is_onboarded ||
     (currentUserProfile?.onboarding_step?.profile_complete &&
       currentUserProfile?.onboarding_step?.workspace_create &&
       currentUserProfile?.onboarding_step?.workspace_invite &&
-      currentUserProfile?.onboarding_step?.workspace_join) ||
+      currentUserProfile?.onboarding_step?.workspace_join)) ||
     false;
 
   const getWorkspaceRedirectionUrl = (): string => {
