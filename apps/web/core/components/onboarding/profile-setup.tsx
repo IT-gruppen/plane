@@ -2,14 +2,14 @@
 
 import React, { useMemo, useState } from "react";
 import { observer } from "mobx-react";
-import Image from "next/image";
-import { useTheme } from "next-themes";
+//import Image from "next/image";
+//import { useTheme } from "next-themes";
 import { Controller, useForm } from "react-hook-form";
 import { Eye, EyeOff } from "lucide-react";
 import { E_PASSWORD_STRENGTH, ONBOARDING_TRACKER_ELEMENTS, USER_TRACKER_EVENTS } from "@plane/constants";
 // types
 import { useTranslation } from "@plane/i18n";
-import { IUser, TUserProfile, TOnboardingSteps } from "@plane/types";
+import { IUser, TUserProfile, TOnboardingSteps, IUserEmailNotificationSettings } from "@plane/types";
 // ui
 import { Button, Input, PasswordStrengthIndicator, Spinner, TOAST_TYPE, setToast } from "@plane/ui";
 // components
@@ -20,14 +20,21 @@ import { OnboardingHeader, SwitchAccountDropdown } from "@/components/onboarding
 // helpers
 // hooks
 import { captureError, captureSuccess, captureView } from "@/helpers/event-tracker.helper";
-import { useUser, useUserProfile } from "@/hooks/store";
+import { useUser, useUserProfile, useUserSettings } from "@/hooks/store";
 // assets
-import ProfileSetupDark from "@/public/onboarding/profile-setup-dark.webp";
-import ProfileSetupLight from "@/public/onboarding/profile-setup-light.webp";
-import UserPersonalizationDark from "@/public/onboarding/user-personalization-dark.webp";
-import UserPersonalizationLight from "@/public/onboarding/user-personalization-light.webp";
+//import ProfileSetupDark from "@/public/onboarding/profile-setup-dark.webp";
+//import ProfileSetupLight from "@/public/onboarding/profile-setup-light.webp";
+//import UserPersonalizationDark from "@/public/onboarding/user-personalization-dark.webp";
+//import UserPersonalizationLight from "@/public/onboarding/user-personalization-light.webp";
+
 // services
 import { AuthService } from "@/services/auth.service";
+import { ProjectService } from "@/services/project/project.service";
+import { UserService } from "@/services/user.service";
+
+const userService = new UserService();
+const projectService = new ProjectService();
+
 
 type TProfileSetupFormValues = {
   first_name: string;
@@ -62,7 +69,7 @@ enum EProfileSetupSteps {
   USER_PERSONALIZATION = "USER_PERSONALIZATION",
 }
 
-const USER_ROLE = ["Individual contributor", "Senior Leader", "Manager", "Executive", "Freelancer", "Student"];
+const USER_ROLE = ["Styret", "Driftsgruppen"];
 
 const USER_DOMAIN = [
   "Engineering",
@@ -81,6 +88,9 @@ const authService = new AuthService();
 
 export const ProfileSetup: React.FC<Props> = observer((props) => {
   const { user, totalSteps, stepChange, finishOnboarding } = props;
+  const { data: userSettings } = useUserSettings();
+  const workspaceSlug = userSettings?.workspace.fallback_workspace_slug || "";
+
   // states
   const [profileSetupStep, setProfileSetupStep] = useState<EProfileSetupSteps>(
     user?.is_password_autoset ? EProfileSetupSteps.USER_DETAILS : EProfileSetupSteps.ALL
@@ -94,7 +104,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
   // plane hooks
   const { t } = useTranslation();
   // hooks
-  const { resolvedTheme } = useTheme();
+  //const { resolvedTheme } = useTheme();
   // store hooks
   const { updateCurrentUser } = useUser();
   const { updateUserProfile } = useUserProfile();
@@ -109,8 +119,8 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
   } = useForm<TProfileSetupFormValues>({
     defaultValues: {
       ...defaultValues,
-      first_name: user?.first_name,
-      last_name: user?.last_name,
+      first_name: user?.email.split("@")[0] ?? "Ildsjel",
+      last_name: "(Frivillig)",
       avatar_url: user?.avatar_url,
     },
     mode: "onChange",
@@ -129,17 +139,30 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
   const handleSubmitProfileSetup = async (formData: TProfileSetupFormValues) => {
     const userDetailsPayload: Partial<IUser> = {
       first_name: formData.first_name,
-      last_name: formData.last_name,
+      last_name: `(${formData.role})`,
+      display_name: formData.first_name,
       avatar_url: formData.avatar_url ?? undefined,
+      user_timezone: "Europe/Paris", // Default timezone for new users
     };
     const profileUpdatePayload: Partial<TUserProfile> = {
-      use_case: formData.use_case,
-      role: formData.role,
+      use_case: "Other",
+      role: "Individual contributor",
+      start_of_the_week: 1, // Monday as the start of the week,
     };
+    const emailNotificationsPayload: IUserEmailNotificationSettings = {
+      property_change: true,
+      state_change: true,
+      comment: true,
+      mention: true,
+      issue_completed: true,
+    };
+
     try {
       await Promise.all([
         updateCurrentUser(userDetailsPayload),
         updateUserProfile(profileUpdatePayload),
+        userService.updateCurrentUserEmailNotificationSettings(emailNotificationsPayload),
+        projectService.getProjects(workspaceSlug).then(projects => projects.map(project => project.id)).then(projectIds => userService.joinProject(workspaceSlug, projectIds)).catch(console.error),
         totalSteps > 2 && stepChange({ profile_complete: true }),
       ]);
       captureSuccess({
@@ -247,7 +270,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
   };
 
   // derived values
-  const isPasswordAlreadySetup = !user?.is_password_autoset;
+  const isPasswordAlreadySetup = true; //!user?.is_password_autoset; -- Users should not set their own password, as we only use Google auth
   const currentPassword = watch("password") || undefined;
   const currentConfirmPassword = watch("confirm_password") || undefined;
 
@@ -276,7 +299,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
   return (
     <div className="flex h-full w-full">
       <div className="w-full h-full overflow-auto px-6 py-10 sm:px-7 sm:py-14 md:px-14 lg:px-28">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" style={{display: 'none'}}>
           <OnboardingHeader currentStep={isCurrentStepUserPersonalization ? 2 : 1} totalSteps={totalSteps} />
           <div className="shrink-0 lg:hidden">
             <SwitchAccountDropdown fullName={`${watch("first_name")} ${watch("last_name")}`} />
@@ -320,7 +343,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                       <div className="flex flex-col items-center justify-between">
                         <div className="relative h-14 w-14 overflow-hidden">
                           <div className="absolute left-0 top-0 flex items-center justify-center h-full w-full rounded-full text-white text-3xl font-medium bg-[#9747FF] uppercase">
-                            {watch("first_name")[0] ?? "R"}
+                            {watch("first_name")[0] ?? "R"}{watch("first_name")[1] ?? "R"}
                           </div>
                         </div>
                         <div className="pt-1 text-sm font-medium text-custom-primary-300 hover:text-custom-primary-400">
@@ -339,7 +362,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                     )}
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{display: 'none'}}>
                   <div className="space-y-1">
                     <label
                       className="text-sm text-onboarding-text-300 font-medium after:content-['*'] after:ml-0.5 after:text-red-500"
@@ -350,13 +373,13 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                     <Controller
                       control={control}
                       name="first_name"
-                      rules={{
-                        required: "First name is required",
-                        maxLength: {
-                          value: 24,
-                          message: "First name must be within 24 characters.",
-                        },
-                      }}
+                      // rules={{
+                      //   required: "First name is required",
+                      //   maxLength: {
+                      //     value: 24,
+                      //     message: "First name must be within 24 characters.",
+                      //   },
+                      // }}
                       render={({ field: { value, onChange, ref } }) => (
                         <Input
                           id="first_name"
@@ -385,13 +408,13 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                     <Controller
                       control={control}
                       name="last_name"
-                      rules={{
-                        required: "Last name is required",
-                        maxLength: {
-                          value: 24,
-                          message: "Last name must be within 24 characters.",
-                        },
-                      }}
+                      // rules={{
+                      //   required: "Last name is required",
+                      //   maxLength: {
+                      //     value: 24,
+                      //     message: "Last name must be within 24 characters.",
+                      //   },
+                      // }}
                       render={({ field: { value, onChange, ref } }) => (
                         <Input
                           id="last_name"
@@ -513,7 +536,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                     className="text-sm text-onboarding-text-300 font-medium after:content-['*'] after:ml-0.5 after:text-red-500"
                     htmlFor="role"
                   >
-                    What role are you working on? Choose one.
+                    Are you a member of the board, or the operations group?
                   </label>
                   <Controller
                     control={control}
@@ -539,7 +562,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                   />
                   {errors.role && <span className="text-sm text-red-500">{errors.role.message}</span>}
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1" style={{display: 'none'}}>
                   <label
                     className="text-sm text-onboarding-text-300 font-medium after:content-['*'] after:ml-0.5 after:text-red-500"
                     htmlFor="use_case"
@@ -549,9 +572,9 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                   <Controller
                     control={control}
                     name="use_case"
-                    rules={{
-                      required: "This field is required",
-                    }}
+                    // rules={{
+                    //   required: "This field is required",
+                    // }}
                     render={({ field: { value, onChange } }) => (
                       <div className="flex flex-wrap gap-2 py-2 overflow-auto break-all">
                         {USER_DOMAIN.map((userDomain) => (
@@ -578,24 +601,24 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
           </form>
         </div>
       </div>
-      <div className="hidden lg:block relative w-2/5 h-screen overflow-hidden px-6 py-10 sm:px-7 sm:py-14 md:px-14 lg:px-28">
-        <SwitchAccountDropdown fullName={`${watch("first_name")} ${watch("last_name")}`} />
-        <div className="absolute inset-0 z-0">
-          {profileSetupStep === EProfileSetupSteps.USER_PERSONALIZATION ? (
-            <Image
-              src={resolvedTheme === "dark" ? UserPersonalizationDark : UserPersonalizationLight}
-              className="h-screen w-auto float-end object-cover"
-              alt="User Personalization"
-            />
-          ) : (
-            <Image
-              src={resolvedTheme === "dark" ? ProfileSetupDark : ProfileSetupLight}
-              className="h-screen w-auto float-end object-cover"
-              alt="Profile setup"
-            />
-          )}
-        </div>
-      </div>
+      {/*<div className="hidden lg:block relative w-2/5 h-screen overflow-hidden px-6 py-10 sm:px-7 sm:py-14 md:px-14 lg:px-28">*/}
+      {/*  <SwitchAccountDropdown fullName={`${watch("first_name")} ${watch("last_name")}`} />*/}
+      {/*  <div className="absolute inset-0 z-0">*/}
+      {/*    {profileSetupStep === EProfileSetupSteps.USER_PERSONALIZATION ? (*/}
+      {/*      <Image*/}
+      {/*        src={resolvedTheme === "dark" ? UserPersonalizationDark : UserPersonalizationLight}*/}
+      {/*        className="h-screen w-auto float-end object-cover"*/}
+      {/*        alt="User Personalization"*/}
+      {/*      />*/}
+      {/*    ) : (*/}
+      {/*      <Image*/}
+      {/*        src={resolvedTheme === "dark" ? ProfileSetupDark : ProfileSetupLight}*/}
+      {/*        className="h-screen w-auto float-end object-cover"*/}
+      {/*        alt="Profile setup"*/}
+      {/*      />*/}
+      {/*    )}*/}
+      {/*  </div>*/}
+      {/*</div>*/}
     </div>
   );
 });

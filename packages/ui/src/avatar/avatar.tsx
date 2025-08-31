@@ -129,6 +129,12 @@ export const Avatar: React.FC<Props> = (props) => {
   // get size details based on the size prop
   const sizeInfo = getSizeInfo(size);
 
+  const getInitials = (name?: string) => {
+    if(name && name[0] && name[1]) {
+      return `${name[0]}${name[1]}`.toUpperCase()
+    }
+  }
+
   return (
     <Tooltip tooltipContent={fallbackText ?? name ?? "?"} disabled={!showTooltip}>
       <div
@@ -160,7 +166,7 @@ export const Avatar: React.FC<Props> = (props) => {
               color: fallbackTextColor ?? "#ffffff",
             }}
           >
-            {name?.[0]?.toUpperCase() ?? fallbackText ?? "?"}
+            {getInitials(name) ?? fallbackText ?? "?"}
           </div>
         )}
       </div>
