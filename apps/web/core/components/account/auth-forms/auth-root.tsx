@@ -170,7 +170,7 @@ export const AuthRoot: FC<TAuthRoot> = observer((props) => {
         authMode={authMode}
         currentAuthStep={authStep}
       >
-        {enablePassword === 'true' &&
+        {enablePassword === "true" &&
           <>
             {errorInfo && errorInfo?.type === EErrorAlertType.BANNER_ALERT && (
               <AuthBanner bannerData={errorInfo} handleBannerData={(value) => setErrorInfo(value)} />
@@ -201,7 +201,7 @@ export const AuthRoot: FC<TAuthRoot> = observer((props) => {
             )}
           </>
         }
-        <OAuthOptions isSignUp={authMode === EAuthModes.SIGN_UP} showOr={enablePassword !== true} />
+        <OAuthOptions isSignUp={authMode === EAuthModes.SIGN_UP} showOr={enablePassword !== "true"} />
         <TermsAndConditions isSignUp={authMode === EAuthModes.SIGN_UP} />
       </AuthHeader>
     </div>

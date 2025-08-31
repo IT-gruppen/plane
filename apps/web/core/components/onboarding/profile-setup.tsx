@@ -35,7 +35,6 @@ import { UserService } from "@/services/user.service";
 const userService = new UserService();
 const projectService = new ProjectService();
 
-
 type TProfileSetupFormValues = {
   first_name: string;
   last_name: string;
@@ -162,7 +161,11 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
         updateCurrentUser(userDetailsPayload),
         updateUserProfile(profileUpdatePayload),
         userService.updateCurrentUserEmailNotificationSettings(emailNotificationsPayload),
-        projectService.getProjects(workspaceSlug).then(projects => projects.map(project => project.id)).then(projectIds => userService.joinProject(workspaceSlug, projectIds)).catch(console.error),
+        projectService
+          .getProjects(workspaceSlug)
+          .then((projects) => projects.map((project) => project.id))
+          .then((projectIds) => userService.joinProject(workspaceSlug, projectIds))
+          .catch(console.error),
         totalSteps > 2 && stepChange({ profile_complete: true }),
       ]);
       captureSuccess({
@@ -299,7 +302,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
   return (
     <div className="flex h-full w-full">
       <div className="w-full h-full overflow-auto px-6 py-10 sm:px-7 sm:py-14 md:px-14 lg:px-28">
-        <div className="flex items-center justify-between" style={{display: 'none'}}>
+        <div className="flex items-center justify-between" style={{ display: "none" }}>
           <OnboardingHeader currentStep={isCurrentStepUserPersonalization ? 2 : 1} totalSteps={totalSteps} />
           <div className="shrink-0 lg:hidden">
             <SwitchAccountDropdown fullName={`${watch("first_name")} ${watch("last_name")}`} />
@@ -343,7 +346,8 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                       <div className="flex flex-col items-center justify-between">
                         <div className="relative h-14 w-14 overflow-hidden">
                           <div className="absolute left-0 top-0 flex items-center justify-center h-full w-full rounded-full text-white text-3xl font-medium bg-[#9747FF] uppercase">
-                            {watch("first_name")[0] ?? "R"}{watch("first_name")[1] ?? "R"}
+                            {watch("first_name")[0] ?? "R"}
+                            {watch("first_name")[1] ?? "R"}
                           </div>
                         </div>
                         <div className="pt-1 text-sm font-medium text-custom-primary-300 hover:text-custom-primary-400">
@@ -362,7 +366,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                     )}
                   </button>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{display: 'none'}}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" style={{ display: "none" }}>
                   <div className="space-y-1">
                     <label
                       className="text-sm text-onboarding-text-300 font-medium after:content-['*'] after:ml-0.5 after:text-red-500"
@@ -562,7 +566,7 @@ export const ProfileSetup: React.FC<Props> = observer((props) => {
                   />
                   {errors.role && <span className="text-sm text-red-500">{errors.role.message}</span>}
                 </div>
-                <div className="space-y-1" style={{display: 'none'}}>
+                <div className="space-y-1" style={{ display: "none" }}>
                   <label
                     className="text-sm text-onboarding-text-300 font-medium after:content-['*'] after:ml-0.5 after:text-red-500"
                     htmlFor="use_case"
