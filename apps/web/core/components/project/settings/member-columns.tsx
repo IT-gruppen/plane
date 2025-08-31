@@ -54,7 +54,7 @@ export const NameColumn: React.FC<NameProps> = (props) => {
               ) : (
                 <Link href={`/${workspaceSlug}/profile/${id}`}>
                   <span className="relative flex size-4 items-center justify-center rounded-full bg-gray-700 capitalize text-white text-xs">
-                    {(email ?? display_name ?? "??").slice(0, 2)}
+                    {(email ?? display_name ?? "??").slice(0, 2).toUpperCase()}
                   </span>
                 </Link>
               )}

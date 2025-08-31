@@ -122,7 +122,7 @@ export const WorkspaceInvitationsListItem: FC<Props> = observer((props) => {
       <div className="group flex items-center justify-between px-3 py-4 hover:bg-custom-background-90 w-full h-full">
         <div className="flex items-center gap-x-4 gap-y-2">
           <span className="relative flex h-10 w-10 items-center justify-center rounded bg-gray-700 p-4 capitalize text-white">
-            {(invitationDetails.email ?? "??").slice(0, 2)}
+            {(invitationDetails.email ?? "??").slice(0, 2).toUpperCase()}
           </span>
           <div>
             <h4 className="cursor-default text-sm">{invitationDetails.email}</h4>
