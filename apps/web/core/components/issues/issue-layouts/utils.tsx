@@ -201,7 +201,7 @@ const getModuleColumns = (): IGroupByColumn[] | undefined => {
       payload: { module_ids: [module.id] },
     });
   });
-  modules.push({
+  modules.unshift({
     id: "None",
     name: "None",
     icon: <DiceIcon className="h-3.5 w-3.5" />,
