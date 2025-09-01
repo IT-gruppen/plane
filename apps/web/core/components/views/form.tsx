@@ -47,7 +47,7 @@ const DEFAULT_VALUES: Partial<IProjectView> = {
   description: "",
   access: EViewAccess.PUBLIC,
   display_properties: getComputedDisplayProperties(),
-  display_filters: { ...getComputedDisplayFilters(), group_by: "state" },
+  display_filters: { ...getComputedDisplayFilters(), group_by: "state", show_empty_groups: true },
 };
 
 export const ProjectViewForm = observer(function ProjectViewForm(props: Props) {
