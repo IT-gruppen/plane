@@ -48,6 +48,9 @@ export const FilterLabels: React.FC<Props> = observer((props) => {
     else setItemsToRender(sortedOptions.length);
   };
 
+  // Check if "None" option should be shown based on search query
+  const showNoneOption = "none".includes(searchQuery.toLowerCase()) || searchQuery === "";
+
   return (
     <>
       <FilterHeader
@@ -57,6 +60,16 @@ export const FilterLabels: React.FC<Props> = observer((props) => {
       />
       {previewEnabled && (
         <div>
+          {/* None option for items with no labels */}
+          {showNoneOption && (
+            <FilterOption
+              key="none"
+              isChecked={appliedFilters?.includes("None") ? true : false}
+              onClick={() => handleUpdate("None")}
+              icon={<span className="h-2.5 w-2.5 rounded-full bg-custom-text-400" />}
+              title="None"
+            />
+          )}
           {sortedOptions ? (
             sortedOptions.length > 0 ? (
               <>
@@ -80,7 +93,7 @@ export const FilterLabels: React.FC<Props> = observer((props) => {
                 )}
               </>
             ) : (
-              <p className="text-xs italic text-custom-text-400">No matches found</p>
+              !showNoneOption && <p className="text-xs italic text-custom-text-400">No matches found</p>
             )
           ) : (
             <Loader className="space-y-2">

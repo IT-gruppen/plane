@@ -83,29 +83,44 @@ export const IssueLevelModals: FC<TIssueLevelModalsProps> = observer((props) => 
       const viewFilters = issueFilters.filters;
       const modalData: Partial<TIssue> = {};
 
-      // Extract priority filter (take the first one if multiple are selected)
+      // Extract priority filter (take the first one if multiple are selected, excluding "None")
       if (viewFilters.priority && viewFilters.priority.length > 0) {
-        modalData.priority = viewFilters.priority[0] as TIssuePriorities;
+        const validPriorities = viewFilters.priority.filter((priority) => priority !== "None");
+        if (validPriorities.length > 0) {
+          modalData.priority = validPriorities[0] as TIssuePriorities;
+        }
       }
 
-      // Extract assignee filter (take the first one if multiple are selected)
+      // Extract assignee filter (take the first one if multiple are selected, excluding "None")
       if (viewFilters.assignees && viewFilters.assignees.length > 0) {
-        modalData.assignee_ids = [viewFilters.assignees[0]];
+        const validAssignees = viewFilters.assignees.filter((assignee) => assignee !== "None");
+        if (validAssignees.length > 0) {
+          modalData.assignee_ids = [validAssignees[0]];
+        }
       }
 
-      // Extract cycle filter (take the first one if multiple are selected)
+      // Extract cycle filter (take the first one if multiple are selected, excluding "None")
       if (viewFilters.cycle && viewFilters.cycle.length > 0) {
-        modalData.cycle_id = viewFilters.cycle[0];
+        const validCycles = viewFilters.cycle.filter((cycle) => cycle !== "None");
+        if (validCycles.length > 0) {
+          modalData.cycle_id = validCycles[0];
+        }
       }
 
-      // Extract module filter
+      // Extract module filter (excluding "None")
       if (viewFilters.module && viewFilters.module.length > 0) {
-        modalData.module_ids = viewFilters.module;
+        const validModules = viewFilters.module.filter((module) => module !== "None");
+        if (validModules.length > 0) {
+          modalData.module_ids = validModules;
+        }
       }
 
-      // Extract label filter
+      // Extract label filter (excluding "None")
       if (viewFilters.labels && viewFilters.labels.length > 0) {
-        modalData.label_ids = viewFilters.labels;
+        const validLabels = viewFilters.labels.filter((label) => label !== "None");
+        if (validLabels.length > 0) {
+          modalData.label_ids = validLabels;
+        }
       }
 
       return modalData;

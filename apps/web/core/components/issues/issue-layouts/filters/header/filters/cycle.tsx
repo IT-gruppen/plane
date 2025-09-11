@@ -55,6 +55,9 @@ export const FilterCycle: React.FC<Props> = observer((props) => {
   const cycleStatus = (status: TCycleGroups | undefined) =>
     (status ? status.toLocaleLowerCase() : "draft") as TCycleGroups;
 
+  // Check if "None" option should be shown based on search query
+  const showNoneOption = "none".includes(searchQuery.toLowerCase()) || searchQuery === "";
+
   return (
     <>
       <FilterHeader
@@ -64,6 +67,18 @@ export const FilterCycle: React.FC<Props> = observer((props) => {
       />
       {previewEnabled && (
         <div>
+          {/* None option for items with no cycle */}
+          {showNoneOption && (
+            <FilterOption
+              key="none"
+              isChecked={appliedFilters?.includes("None") ? true : false}
+              onClick={() => handleUpdate("None")}
+              icon={
+                <CycleGroupIcon cycleGroup="draft" className="h-3.5 w-3.5 flex-shrink-0" />
+              }
+              title="None"
+            />
+          )}
           {sortedOptions ? (
             sortedOptions.length > 0 ? (
               <>
@@ -90,7 +105,7 @@ export const FilterCycle: React.FC<Props> = observer((props) => {
                 )}
               </>
             ) : (
-              <p className="text-xs italic text-custom-text-400">No matches found</p>
+              !showNoneOption && <p className="text-xs italic text-custom-text-400">No matches found</p>
             )
           ) : (
             <Loader className="space-y-2">

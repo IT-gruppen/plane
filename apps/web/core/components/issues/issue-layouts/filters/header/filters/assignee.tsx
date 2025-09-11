@@ -50,6 +50,9 @@ export const FilterAssignees: React.FC<Props> = observer((props: Props) => {
     else setItemsToRender(sortedOptions.length);
   };
 
+  // Check if "None" option should be shown based on search query
+  const showNoneOption = "none".includes(searchQuery.toLowerCase()) || "unassigned".includes(searchQuery.toLowerCase()) || searchQuery === "";
+
   return (
     <>
       <FilterHeader
@@ -59,6 +62,20 @@ export const FilterAssignees: React.FC<Props> = observer((props: Props) => {
       />
       {previewEnabled && (
         <div>
+          {/* None option for items with no assignees */}
+          {showNoneOption && (
+            <FilterOption
+              key="none"
+              isChecked={appliedFilters?.includes("None") ? true : false}
+              onClick={() => handleUpdate("None")}
+              icon={
+                <div className="h-6 w-6 rounded-full bg-custom-background-80 flex items-center justify-center">
+                  <span className="text-xs text-custom-text-400">?</span>
+                </div>
+              }
+              title="None"
+            />
+          )}
           {sortedOptions ? (
             sortedOptions.length > 0 ? (
               <>
@@ -94,7 +111,7 @@ export const FilterAssignees: React.FC<Props> = observer((props: Props) => {
                 )}
               </>
             ) : (
-              <p className="text-xs italic text-custom-text-400">No matches found</p>
+              !showNoneOption && <p className="text-xs italic text-custom-text-400">No matches found</p>
             )
           ) : (
             <Loader className="space-y-2">
