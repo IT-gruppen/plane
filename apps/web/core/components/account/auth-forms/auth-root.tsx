@@ -44,7 +44,15 @@ export const AuthRoot: FC<TAuthRoot> = observer((props) => {
   const workspaceSlug = searchParams.get("slug");
   const error_code = searchParams.get("error_code");
   const nextPath = searchParams.get("next_path");
-  const enablePassword = searchParams.get("enable_password");
+  const enablePassword = searchParams.get("enable_password") || localStorage.getItem('enable_password');
+  useEffect(() => {
+    if(enablePassword === "true") {
+      localStorage.setItem("enable_password", "true");
+    } else {
+      localStorage.removeItem("enable_password");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // props
   const { authMode: currentAuthMode } = props;
   // states
@@ -201,7 +209,7 @@ export const AuthRoot: FC<TAuthRoot> = observer((props) => {
             )}
           </>
         }
-        <OAuthOptions isSignUp={authMode === EAuthModes.SIGN_UP} showOr={enablePassword !== "true"} />
+        <OAuthOptions isSignUp={authMode === EAuthModes.SIGN_UP} showOr={enablePassword === "true"} />
         <TermsAndConditions isSignUp={authMode === EAuthModes.SIGN_UP} />
       </AuthHeader>
     </div>
