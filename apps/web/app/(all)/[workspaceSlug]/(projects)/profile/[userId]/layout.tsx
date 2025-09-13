@@ -7,12 +7,12 @@ import useSWR from "swr";
 import { PROFILE_VIEWER_TAB, PROFILE_ADMINS_TAB, EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { AppHeader, ContentWrapper } from "@/components/core";
-import { ProfileSidebar } from "@/components/profile";
+//import { ProfileSidebar } from "@/components/profile";
 // constants
 import { USER_PROFILE_PROJECT_SEGREGATION } from "@/constants/fetch-keys";
 // hooks
 import { useUserPermissions } from "@/hooks/store";
-import useSize from "@/hooks/use-window-size";
+//import useSize from "@/hooks/use-window-size";
 // local components
 import { UserService } from "@/services/user.service";
 import { UserProfileHeader } from "./header";
@@ -39,8 +39,8 @@ const UseProfileLayout: React.FC<Props> = observer((props) => {
     EUserPermissionsLevel.WORKSPACE
   );
 
-  const windowSize = useSize();
-  const isSmallerScreen = windowSize[0] >= 768;
+  //const windowSize = useSize();
+  //const isSmallerScreen = windowSize[0] >= 768;
 
   const { data: userProjectsData } = useSWR(
     workspaceSlug && userId ? USER_PROFILE_PROJECT_SEGREGATION(workspaceSlug.toString(), userId.toString()) : null,
@@ -84,11 +84,9 @@ const UseProfileLayout: React.FC<Props> = observer((props) => {
                   </div>
                 )}
               </div>
-              {!isSmallerScreen && <ProfileSidebar userProjectsData={userProjectsData} />}
             </div>
           </ContentWrapper>
         </div>
-        {isSmallerScreen && <ProfileSidebar userProjectsData={userProjectsData} />}
       </div>
     </>
   );

@@ -22,5 +22,7 @@ export const getSidebarNavigationItemIcon = (key: string, className: string = ""
       return <PenSquare className={cn("size-4 flex-shrink-0", className)} />;
     case "archives":
       return <ArchiveIcon className={cn("size-4 flex-shrink-0", className)} />;
+    case "assigned":
+      return <UserActivityIcon className={cn("size-4 flex-shrink-0", className)} />;
   }
 };
