@@ -25,12 +25,13 @@ import { ExportPageModal } from "../../modals/export-page-modal";
 import { PAGE_NAVIGATION_PANE_TABS_QUERY_PARAM } from "../../navigation-pane";
 
 type Props = {
+  configMode?: boolean;
   page: TPageInstance;
   storeType: EPageStoreType;
 };
 
 export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: Props) {
-  const { page, storeType } = props;
+  const { configMode = false, page, storeType } = props;
   // states
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   // navigation
@@ -123,6 +124,11 @@ export const PageOptionsDropdown = observer(function PageOptionsDropdown(props: 
       setIsExportModalOpen,
     ]
   );
+
+  if (configMode)
+    return (
+      <PageActions optionsOrder={["toggle-access", "archive-restore", "delete"]} page={page} storeType={storeType} />
+    );
 
   return (
     <>

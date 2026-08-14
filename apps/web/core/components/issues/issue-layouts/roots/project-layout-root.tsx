@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
+import { useEffect, useMemo, useState } from "react";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
-import useSWR from "swr";
+import { useParams, useSearchParams } from "next/navigation";
 // plane constants
 import { ISSUE_DISPLAY_FILTERS_BY_PAGE, PROJECT_VIEW_TRACKER_ELEMENTS } from "@plane/constants";
 import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
@@ -14,6 +14,7 @@ import { Spinner } from "@plane/ui";
 // components
 import { ProjectLevelWorkItemFiltersHOC } from "@/components/work-item-filters/filters-hoc/project-level";
 import { WorkItemFiltersRow } from "@/components/work-item-filters/filters-row";
+import { parseVirtualProjectViewSearchParams } from "@/helpers/virtual-project-view";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 import { IssuesStoreContext } from "@/hooks/use-issue-layout-store";
@@ -45,6 +46,7 @@ function ProjectIssueLayout(props: { activeLayout: EIssueLayoutTypes | undefined
 export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
   // router
   const { workspaceSlug: routerWorkspaceSlug, projectId: routerProjectId } = useParams();
+  const searchParams = useSearchParams();
   const workspaceSlug = routerWorkspaceSlug ? routerWorkspaceSlug.toString() : undefined;
   const projectId = routerProjectId ? routerProjectId.toString() : undefined;
   // hooks
@@ -52,21 +54,35 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
   // derived values
   const workItemFilters = projectId ? issuesFilter?.getIssueFilters(projectId) : undefined;
   const activeLayout = workItemFilters?.displayFilters?.layout;
+  const virtualViewOverrides = useMemo(() => parseVirtualProjectViewSearchParams(searchParams), [searchParams]);
+  const filterRequestKey =
+    workspaceSlug && projectId ? `${workspaceSlug}:${projectId}:${virtualViewOverrides.signature}` : undefined;
+  const [loadedFilterRequestKey, setLoadedFilterRequestKey] = useState<string>();
 
-  useSWR(
-    workspaceSlug && projectId ? `PROJECT_ISSUES_${workspaceSlug}_${projectId}` : null,
-    async () => {
-      if (workspaceSlug && projectId) {
-        await issuesFilter?.fetchFilters(workspaceSlug, projectId);
+  useEffect(() => {
+    if (!workspaceSlug || !projectId || !filterRequestKey) return;
+
+    let isCurrentRequest = true;
+    const loadFilters = async () => {
+      try {
+        await issuesFilter?.fetchFilters(workspaceSlug, projectId, virtualViewOverrides);
+        if (isCurrentRequest) setLoadedFilterRequestKey(filterRequestKey);
+      } catch (error) {
+        console.error("Failed to load project work-item filters", error);
       }
-    },
-    { revalidateIfStale: false, revalidateOnFocus: false }
-  );
+    };
+    void loadFilters();
 
-  if (!workspaceSlug || !projectId || !workItemFilters) return <></>;
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [filterRequestKey, issuesFilter, projectId, virtualViewOverrides, workspaceSlug]);
+
+  if (!workspaceSlug || !projectId || !workItemFilters || loadedFilterRequestKey !== filterRequestKey) return <></>;
   return (
     <IssuesStoreContext.Provider value={EIssuesStoreType.PROJECT}>
       <ProjectLevelWorkItemFiltersHOC
+        key={virtualViewOverrides.signature}
         enableSaveView
         entityType={EIssuesStoreType.PROJECT}
         entityId={projectId}

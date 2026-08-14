@@ -22,6 +22,7 @@ import type {
 } from "@plane/types";
 import { EIssuesStoreType } from "@plane/types";
 import { handleIssueQueryParamsByLayout } from "@plane/utils";
+import type { TVirtualProjectViewOverrides } from "@/helpers/virtual-project-view";
 import type { IBaseIssueFilterStore } from "../helpers/issue-filter-helper.store";
 import { IssueFilterHelperStore } from "../helpers/issue-filter-helper.store";
 // helpers
@@ -42,7 +43,11 @@ export interface IProjectIssuesFilter extends IBaseIssueFilterStore {
   ) => Partial<Record<TIssueParams, string | boolean>>;
   getIssueFilters(projectId: string): IIssueFilters | undefined;
   // action
-  fetchFilters: (workspaceSlug: string, projectId: string) => Promise<void>;
+  fetchFilters: (
+    workspaceSlug: string,
+    projectId: string,
+    virtualViewOverrides?: TVirtualProjectViewOverrides
+  ) => Promise<void>;
   updateFilterExpression: (
     workspaceSlug: string,
     projectId: string,
@@ -59,6 +64,8 @@ export interface IProjectIssuesFilter extends IBaseIssueFilterStore {
 export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProjectIssuesFilter {
   // observables
   filters: { [projectId: string]: IIssueFilters } = {};
+  virtualViewOverrides: Record<string, TVirtualProjectViewOverrides | undefined> = {};
+  private filterRequestSignatures: Record<string, string> = {};
   // root store
   rootIssueStore: IIssueRootStore;
   // services
@@ -69,6 +76,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
     makeObservable(this, {
       // observables
       filters: observable,
+      virtualViewOverrides: observable,
       // computed
       issueFilters: computed,
       appliedFilters: computed,
@@ -134,11 +142,31 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
     }
   );
 
-  fetchFilters = async (workspaceSlug: string, projectId: string) => {
+  fetchFilters = async (
+    workspaceSlug: string,
+    projectId: string,
+    virtualViewOverrides?: TVirtualProjectViewOverrides
+  ) => {
+    const requestSignature = virtualViewOverrides?.isActive ? virtualViewOverrides.signature : "default";
+    this.filterRequestSignatures[projectId] = requestSignature;
     const _filters = await this.projectService.getProjectUserProperties(workspaceSlug, projectId);
+    if (this.filterRequestSignatures[projectId] !== requestSignature) return;
 
-    const richFilters = _filters?.rich_filters;
-    const displayFilters = this.computedDisplayFilters(_filters?.display_filters);
+    const persistedDisplayFilters = this.computedDisplayFilters(_filters?.display_filters);
+    const richFilters =
+      virtualViewOverrides?.isActive && virtualViewOverrides.hasRichFilters
+        ? virtualViewOverrides.richFilters
+        : _filters?.rich_filters;
+    const displayFilters = virtualViewOverrides?.isActive
+      ? this.computedDisplayFilters({
+          ...persistedDisplayFilters,
+          ...virtualViewOverrides.displayFilters,
+          calendar: {
+            ...persistedDisplayFilters.calendar,
+            ...virtualViewOverrides.displayFilters.calendar,
+          },
+        })
+      : persistedDisplayFilters;
     const displayProperties = this.computedDisplayProperties(_filters?.display_properties);
 
     // fetching the kanban toggle helpers in the local storage
@@ -159,6 +187,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
     }
 
     runInAction(() => {
+      set(this.virtualViewOverrides, projectId, virtualViewOverrides?.isActive ? virtualViewOverrides : undefined);
       set(this.filters, [projectId, "richFilters"], richFilters);
       set(this.filters, [projectId, "displayFilters"], displayFilters);
       set(this.filters, [projectId, "displayProperties"], displayProperties);
@@ -182,9 +211,11 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
       });
 
       this.rootIssueStore.projectIssues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation");
-      await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
-        rich_filters: filters,
-      });
+      if (!this.virtualViewOverrides[projectId]) {
+        await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+          rich_filters: filters,
+        });
+      }
     } catch (error) {
       console.log("error while updating rich filters", error);
       throw error;
@@ -244,9 +275,11 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
             this.rootIssueStore.projectIssues.fetchIssuesWithExistingPagination(workspaceSlug, projectId, "mutation");
           }
 
-          await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
-            display_filters: _filters.displayFilters,
-          });
+          if (!this.virtualViewOverrides[projectId]) {
+            await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+              display_filters: _filters.displayFilters,
+            });
+          }
 
           break;
         }
@@ -264,9 +297,11 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
             });
           });
 
-          await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
-            display_properties: _filters.displayProperties,
-          });
+          if (!this.virtualViewOverrides[projectId]) {
+            await this.projectService.updateProjectUserProperties(workspaceSlug, projectId, {
+              display_properties: _filters.displayProperties,
+            });
+          }
           break;
         }
 
@@ -275,7 +310,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
           _filters.kanbanFilters = { ..._filters.kanbanFilters, ...updatedKanbanFilters };
 
           const currentUserId = this.rootIssueStore.currentUserId;
-          if (currentUserId)
+          if (currentUserId && !this.virtualViewOverrides[projectId])
             this.handleIssuesLocalFilters.set(EIssuesStoreType.PROJECT, type, workspaceSlug, projectId, currentUserId, {
               kanban_filters: _filters.kanbanFilters,
             });
@@ -296,7 +331,7 @@ export class ProjectIssuesFilter extends IssueFilterHelperStore implements IProj
           break;
       }
     } catch (error) {
-      this.fetchFilters(workspaceSlug, projectId);
+      this.fetchFilters(workspaceSlug, projectId, this.virtualViewOverrides[projectId]);
       throw error;
     }
   };

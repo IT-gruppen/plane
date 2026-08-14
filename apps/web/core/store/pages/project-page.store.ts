@@ -13,6 +13,7 @@ import type { TPage, TPageFilters, TPageNavigationTabs } from "@plane/types";
 import { EUserProjectRoles } from "@plane/types";
 // helpers
 import { filterPagesByPageType, getPageName, orderPages, shouldFilterPage } from "@plane/utils";
+import { isProjectConfigPageVisible } from "@/helpers/project-navigation";
 // plane web constants
 // plane web store
 // services
@@ -133,6 +134,15 @@ export class ProjectPageStore implements IProjectPageStore {
     return !!currentUserProjectRole && ROLE_PERMISSIONS_TO_CREATE_PAGE.includes(currentUserProjectRole);
   }
 
+  private isPageVisibleInProjectNavigation = (page: Pick<TPage, "name">, projectId: string) => {
+    const { workspaceSlug } = this.store.router;
+    const currentUserProjectRole = this.store.user.permission.getProjectRoleByWorkspaceSlugAndProjectId(
+      workspaceSlug?.toString() || "",
+      projectId
+    );
+    return isProjectConfigPageVisible(page, currentUserProjectRole === EUserPermissions.ADMIN);
+  };
+
   /**
    * @description get the current project page ids based on the pageType
    * @param {TPageNavigationTabs} pageType
@@ -142,7 +152,9 @@ export class ProjectPageStore implements IProjectPageStore {
     if (!projectId) return undefined;
     // helps to filter pages based on the pageType
     let pagesByType = filterPagesByPageType(pageType, Object.values(this?.data || {}));
-    pagesByType = pagesByType.filter((p) => p.project_ids?.includes(projectId));
+    pagesByType = pagesByType.filter(
+      (page) => page.project_ids?.includes(projectId) && this.isPageVisibleInProjectNavigation(page, projectId)
+    );
 
     const pages = (pagesByType.map((page) => page.id) as string[]) || undefined;
 
@@ -155,7 +167,9 @@ export class ProjectPageStore implements IProjectPageStore {
    */
   getCurrentProjectPageIds = computedFn((projectId: string) => {
     if (!projectId) return [];
-    const pages = Object.values(this?.data || {}).filter((page) => page.project_ids?.includes(projectId));
+    const pages = Object.values(this?.data || {}).filter(
+      (page) => page.project_ids?.includes(projectId) && this.isPageVisibleInProjectNavigation(page, projectId)
+    );
     return pages.map((page) => page.id) as string[];
   });
 
@@ -172,6 +186,7 @@ export class ProjectPageStore implements IProjectPageStore {
     let filteredPages = pagesByType.filter(
       (p) =>
         p.project_ids?.includes(projectId) &&
+        this.isPageVisibleInProjectNavigation(p, projectId) &&
         getPageName(p.name).toLowerCase().includes(this.filters.searchQuery.toLowerCase()) &&
         shouldFilterPage(p, this.filters.filters)
     );

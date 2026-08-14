@@ -18,12 +18,24 @@ import { PageOfflineBadge } from "./offline-badge";
 import { PageLockControl } from "./lock-control";
 
 type Props = {
+  canManageConfig?: boolean;
+  configMode?: boolean;
   page: TPageInstance;
   storeType: EPageStoreType;
 };
 
 export const PageHeaderActions = observer(function PageHeaderActions(props: Props) {
-  const { page, storeType } = props;
+  const { canManageConfig = false, configMode = false, page, storeType } = props;
+
+  if (configMode)
+    return (
+      <div className="flex items-center gap-1">
+        <PageArchivedBadge page={page} />
+        <PageCopyLinkControl page={page} />
+        {canManageConfig && <PageLockControl page={page} />}
+        {canManageConfig && <PageOptionsDropdown configMode page={page} storeType={storeType} />}
+      </div>
+    );
 
   return (
     <div className="flex items-center gap-1">

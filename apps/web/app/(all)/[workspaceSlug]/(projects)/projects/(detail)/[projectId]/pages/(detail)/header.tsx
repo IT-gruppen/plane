@@ -7,6 +7,7 @@
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 // plane imports
+import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 import { PageIcon } from "@plane/propel/icons";
 import type { ICustomSearchSelectOption } from "@plane/types";
 import { Breadcrumbs, Header, BreadcrumbNavigationSearchDropdown } from "@plane/ui";
@@ -18,8 +19,10 @@ import { SwitcherIcon, SwitcherLabel } from "@/components/common/switcher-label"
 import { PageHeaderActions } from "@/components/pages/header/actions";
 import { PageSyncingBadge } from "@/components/pages/header/syncing-badge";
 import { CommonProjectBreadcrumbs } from "@/components/breadcrumbs/common";
+import { isProjectConfigPage } from "@/helpers/project-navigation";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
+import { useUserPermissions } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { EPageStoreType, usePage, usePageStore } from "@/hooks/store";
 
@@ -35,6 +38,7 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
   const { workspaceSlug, pageId, projectId } = useParams();
   // store hooks
   const { loader } = useProject();
+  const { allowPermissions } = useUserPermissions();
   const { getPageById, getCurrentProjectPageIds } = usePageStore(storeType);
   const page = usePage({
     pageId: pageId?.toString() ?? "",
@@ -42,6 +46,13 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
   });
   // derived values
   const projectPageIds = getCurrentProjectPageIds(projectId?.toString());
+  const isConfigPage = isProjectConfigPage(page);
+  const canManageConfig = allowPermissions(
+    [EUserPermissions.ADMIN],
+    EUserPermissionsLevel.PROJECT,
+    workspaceSlug?.toString(),
+    projectId?.toString()
+  );
 
   const switcherOptions = projectPageIds
     .map((id) => {
@@ -101,7 +112,12 @@ export const PageDetailsHeader = observer(function PageDetailsHeader() {
       </Header.LeftItem>
       <Header.RightItem>
         <PageSyncingBadge syncStatus={page.isSyncingWithServer} />
-        <PageHeaderActions page={page} storeType={storeType} />
+        <PageHeaderActions
+          page={page}
+          storeType={storeType}
+          configMode={isConfigPage}
+          canManageConfig={canManageConfig}
+        />
       </Header.RightItem>
     </Header>
   );

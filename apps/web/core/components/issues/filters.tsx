@@ -11,8 +11,14 @@ import { ChartNoAxesColumn, SlidersHorizontal } from "lucide-react";
 import { EIssueFilterType, ISSUE_STORE_TO_FILTERS_MAP } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
+import { IconButton } from "@plane/propel/icon-button";
+import { CopyLinkIcon } from "@plane/propel/icons";
+import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { Tooltip } from "@plane/propel/tooltip";
 import type { IIssueDisplayFilterOptions, IIssueDisplayProperties } from "@plane/types";
 import { EIssueLayoutTypes, EIssuesStoreType } from "@plane/types";
+import { copyTextToClipboard } from "@plane/utils";
+import { serializeVirtualProjectView } from "@/helpers/virtual-project-view";
 // hooks
 import { useIssues } from "@/hooks/store/use-issues";
 // plane web imports
@@ -86,6 +92,45 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
     [workspaceSlug, projectId, updateFilters]
   );
 
+  const handleCopyLinkWithCurrentSettings = useCallback(async () => {
+    if (!issueFilters) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: "The current work-item settings are not available yet.",
+      });
+      return;
+    }
+
+    const result = serializeVirtualProjectView(issueFilters);
+    if (!result.success) {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: result.reason,
+      });
+      return;
+    }
+
+    const url = new URL(`/${workspaceSlug}/projects/${projectId}/issues`, window.location.origin);
+    url.search = result.searchParams.toString();
+
+    try {
+      await copyTextToClipboard(url.toString());
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("common.link_copied"),
+        message: "The link includes the current layout, grouping, and filters.",
+      });
+    } catch {
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("toast.error"),
+        message: "The link could not be copied to the clipboard.",
+      });
+    }
+  }, [issueFilters, projectId, t, workspaceSlug]);
+
   return (
     <>
       <WorkItemsModal
@@ -125,6 +170,17 @@ export const HeaderFilters = observer(function HeaderFilters(props: Props) {
           isEpic={storeType === EIssuesStoreType.EPIC}
         />
       </FiltersDropdown>
+      {storeType === EIssuesStoreType.PROJECT && (
+        <Tooltip tooltipContent="Copy link with current settings">
+          <IconButton
+            variant="secondary"
+            size="lg"
+            onClick={() => void handleCopyLinkWithCurrentSettings()}
+            icon={CopyLinkIcon}
+            aria-label="Copy link with current settings"
+          />
+        </Tooltip>
+      )}
       {canUserCreateIssue ? (
         <Button className="hidden px-2 md:block" onClick={() => setAnalyticsModal(true)} variant="secondary" size="lg">
           <div className="hidden @4xl:flex">{t("common.analytics")}</div>

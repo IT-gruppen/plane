@@ -11,6 +11,7 @@ import { LockIcon } from "@plane/propel/icons";
 import { Tooltip } from "@plane/propel/tooltip";
 import { Avatar, FavoriteStar } from "@plane/ui";
 import { renderFormattedDate, getFileURL } from "@plane/utils";
+import { isProjectConfigPage } from "@/helpers/project-navigation";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { usePageOperations } from "@/hooks/use-page-operations";
@@ -38,6 +39,7 @@ export const BlockItemAction = observer(function BlockItemAction(props: Props) {
   // derived values
   const { access, created_at, is_favorite, owned_by, canCurrentUserFavoritePage } = page;
   const ownerDetails = owned_by ? getUserDetails(owned_by) : undefined;
+  const isConfigPage = isProjectConfigPage(page);
 
   return (
     <>
@@ -76,15 +78,19 @@ export const BlockItemAction = observer(function BlockItemAction(props: Props) {
 
       {/* quick actions dropdown */}
       <PageActions
-        optionsOrder={[
-          "open-in-new-tab",
-          "copy-link",
-          "make-a-copy",
-          "toggle-lock",
-          "toggle-access",
-          "archive-restore",
-          "delete",
-        ]}
+        optionsOrder={
+          isConfigPage
+            ? ["open-in-new-tab", "copy-link", "toggle-lock", "toggle-access", "archive-restore", "delete"]
+            : [
+                "open-in-new-tab",
+                "copy-link",
+                "make-a-copy",
+                "toggle-lock",
+                "toggle-access",
+                "archive-restore",
+                "delete",
+              ]
+        }
         page={page}
         parentRef={parentRef}
         storeType={storeType}
