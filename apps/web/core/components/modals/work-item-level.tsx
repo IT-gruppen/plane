@@ -5,7 +5,7 @@
  */
 
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 // plane imports
 import type { TIssue } from "@plane/types";
 import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
@@ -13,12 +13,14 @@ import { EIssueServiceType, EIssuesStoreType } from "@plane/types";
 import { BulkDeleteIssuesModal } from "@/components/core/modals/bulk-delete-issues-modal";
 import { DeleteIssueModal } from "@/components/issues/delete-issue-modal";
 import { CreateUpdateIssueModal } from "@/components/issues/issue-modal/modal";
+import { isProjectWorkItemsPath } from "@/helpers/work-item-create-defaults";
 // hooks
 import { useCommandPalette } from "@/hooks/store/use-command-palette";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useUser } from "@/hooks/store/user";
 import { useAppRouter } from "@/hooks/use-app-router";
 import { useIssuesActions } from "@/hooks/use-issues-actions";
+import { useProjectWorkItemCreateDefaults } from "@/hooks/use-project-work-item-create-defaults";
 
 export type TWorkItemLevelModalsProps = {
   workItemIdentifier: string | undefined;
@@ -27,7 +29,8 @@ export type TWorkItemLevelModalsProps = {
 export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: TWorkItemLevelModalsProps) {
   const { workItemIdentifier } = props;
   // router
-  const { workspaceSlug, cycleId, moduleId } = useParams();
+  const { workspaceSlug, projectId, cycleId, moduleId } = useParams();
+  const pathname = usePathname();
   const router = useAppRouter();
   // store hooks
   const { data: currentUser } = useUser();
@@ -49,7 +52,14 @@ export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: 
     isBulkDeleteIssueModalOpen,
     toggleBulkDeleteIssueModal,
     createWorkItemAllowedProjectIds,
+    createIssueStoreType,
   } = useCommandPalette();
+  const workspaceSlugString = workspaceSlug?.toString();
+  const projectIdString = projectId?.toString();
+  const shouldApplyProjectFilterDefaults =
+    createIssueStoreType === EIssuesStoreType.PROJECT &&
+    isProjectWorkItemsPath(pathname, workspaceSlugString, projectIdString);
+  const projectFilterDefaults = useProjectWorkItemCreateDefaults(projectIdString, shouldApplyProjectFilterDefaults);
   // derived values
   const { fetchSubIssues: fetchSubWorkItems } = useIssueDetail();
   const { fetchSubIssues: fetchEpicSubWorkItems } = useIssueDetail(EIssueServiceType.EPICS);
@@ -78,6 +88,7 @@ export const WorkItemLevelModals = observer(function WorkItemLevelModals(props: 
   const getCreateIssueModalData = () => {
     if (cycleId) return { cycle_id: cycleId.toString() };
     if (moduleId) return { module_ids: [moduleId.toString()] };
+    if (Object.keys(projectFilterDefaults).length > 0) return projectFilterDefaults;
     return undefined;
   };
 

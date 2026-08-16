@@ -82,7 +82,6 @@ export const ProjectLayoutRoot = observer(function ProjectLayoutRoot() {
   return (
     <IssuesStoreContext.Provider value={EIssuesStoreType.PROJECT}>
       <ProjectLevelWorkItemFiltersHOC
-        key={virtualViewOverrides.signature}
         enableSaveView
         entityType={EIssuesStoreType.PROJECT}
         entityId={projectId}

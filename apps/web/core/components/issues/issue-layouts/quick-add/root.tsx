@@ -7,7 +7,7 @@
 import type { FC } from "react";
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import type { UseFormRegister } from "react-hook-form";
 import { useForm } from "react-hook-form";
 // plane imports
@@ -15,7 +15,11 @@ import { useTranslation } from "@plane/i18n";
 import { PlusIcon } from "@plane/propel/icons";
 import { setPromiseToast } from "@plane/propel/toast";
 import type { IProject, TIssue, EIssueLayoutTypes } from "@plane/types";
+import { EIssuesStoreType } from "@plane/types";
 import { cn, createIssuePayload } from "@plane/utils";
+import { isProjectWorkItemsPath, mergeWorkItemCreateDefaults } from "@/helpers/work-item-create-defaults";
+import { useIssueStoreType } from "@/hooks/use-issue-layout-store";
+import { useProjectWorkItemCreateDefaults } from "@/hooks/use-project-work-item-create-defaults";
 // local imports
 import { QuickAddIssueFormRoot } from "./form";
 import { CreateIssueToastActionItems } from "../../create-issue-toast-action-items";
@@ -38,6 +42,7 @@ export type TQuickAddIssueButton = {
 type TQuickAddIssueRoot = {
   isQuickAddOpen?: boolean;
   layout: EIssueLayoutTypes;
+  fallbackData?: Partial<TIssue>;
   prePopulatedData?: Partial<TIssue>;
   QuickAddButton?: FC<TQuickAddIssueButton>;
   customQuickAddButton?: React.ReactNode;
@@ -55,6 +60,7 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
   const {
     isQuickAddOpen,
     layout,
+    fallbackData,
     prePopulatedData,
     QuickAddButton,
     customQuickAddButton,
@@ -67,6 +73,14 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
   const { t } = useTranslation();
   // router
   const { workspaceSlug, projectId } = useParams();
+  const pathname = usePathname();
+  const storeType = useIssueStoreType();
+  const workspaceSlugString = workspaceSlug?.toString();
+  const projectIdString = projectId?.toString();
+  const shouldApplyProjectFilterDefaults =
+    storeType === EIssuesStoreType.PROJECT && isProjectWorkItemsPath(pathname, workspaceSlugString, projectIdString);
+  const projectFilterDefaults = useProjectWorkItemCreateDefaults(projectIdString, shouldApplyProjectFilterDefaults);
+  const creationDefaults = mergeWorkItemCreateDefaults(fallbackData, projectFilterDefaults, prePopulatedData);
   // states
   const [isOpen, setIsOpen] = useState(isQuickAddOpen ?? false);
   // form info
@@ -103,8 +117,7 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
     reset({ ...defaultValues });
 
     const payload = createIssuePayload(projectId.toString(), {
-      // oxlint-disable-next-line unicorn/no-useless-fallback-in-spread
-      ...(prePopulatedData ?? {}),
+      ...creationDefaults,
       ...formData,
     });
 
@@ -148,7 +161,7 @@ export const QuickAddIssueRoot = observer(function QuickAddIssueRoot(props: TQui
         <QuickAddIssueFormRoot
           isOpen={isOpen}
           layout={layout}
-          prePopulatedData={prePopulatedData}
+          prePopulatedData={creationDefaults}
           projectId={projectId?.toString()}
           // oxlint-disable-next-line no-unneeded-ternary
           hasError={errors && errors?.name && errors?.name?.message ? true : false}

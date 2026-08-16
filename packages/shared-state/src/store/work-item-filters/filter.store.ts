@@ -30,7 +30,9 @@ type TGetOrCreateFilterParams = {
 export interface IWorkItemFilterStore {
   filters: Map<TWorkItemFilterKey, IWorkItemFilterInstance>; // key is the entity id (project, cycle, workspace, teamspace, etc)
   getFilter: (entityType: EIssuesStoreType, entityId: string) => IWorkItemFilterInstance | undefined;
+  createFilter: (params: TGetOrCreateFilterParams) => IWorkItemFilterInstance;
   getOrCreateFilter: (params: TGetOrCreateFilterParams) => IWorkItemFilterInstance;
+  registerFilter: (entityType: EIssuesStoreType, entityId: string, filter: IWorkItemFilterInstance) => void;
   resetExpression: (entityType: EIssuesStoreType, entityId: string, expression: TWorkItemFilterExpression) => void;
   updateFilterExpressionFromConditions: (
     entityType: EIssuesStoreType,
@@ -43,7 +45,7 @@ export interface IWorkItemFilterStore {
     entityId: string,
     condition: TWorkItemFilterCondition
   ) => void;
-  deleteFilter: (entityType: EIssuesStoreType, entityId: string) => void;
+  deleteFilter: (entityType: EIssuesStoreType, entityId: string, expectedFilterId?: string) => void;
 }
 
 export class WorkItemFilterStore implements IWorkItemFilterStore {
@@ -54,7 +56,9 @@ export class WorkItemFilterStore implements IWorkItemFilterStore {
     this.filters = new Map<TWorkItemFilterKey, IWorkItemFilterInstance>();
     makeObservable(this, {
       filters: observable,
+      createFilter: action,
       getOrCreateFilter: action,
+      registerFilter: action,
       resetExpression: action,
       updateFilterExpressionFromConditions: action,
       deleteFilter: action,
@@ -74,6 +78,11 @@ export class WorkItemFilterStore implements IWorkItemFilterStore {
   );
 
   // ------------ actions ------------
+
+  /**
+   * Creates a new filter instance for an entity.
+   */
+  createFilter: IWorkItemFilterStore["createFilter"] = action((params) => this._initializeFilterInstance(params));
 
   /**
    * Gets or creates a new filter instance.
@@ -97,12 +106,16 @@ export class WorkItemFilterStore implements IWorkItemFilterStore {
       return existingFilter;
     }
 
-    // create new filter instance
-    const newFilter = this._initializeFilterInstance(params);
-    const filterKey = this._getFilterKey(params.entityType, params.entityId);
-    this.filters.set(filterKey, newFilter);
-
+    const newFilter = this.createFilter(params);
+    this.registerFilter(params.entityType, params.entityId, newFilter);
     return newFilter;
+  });
+
+  /**
+   * Registers an existing filter instance for an entity.
+   */
+  registerFilter: IWorkItemFilterStore["registerFilter"] = action((entityType, entityId, filter) => {
+    this.filters.set(this._getFilterKey(entityType, entityId), filter);
   });
 
   /**
@@ -192,7 +205,9 @@ export class WorkItemFilterStore implements IWorkItemFilterStore {
    * @param entityType - The entity type.
    * @param entityId - The entity id.
    */
-  deleteFilter: IWorkItemFilterStore["deleteFilter"] = action((entityType, entityId) => {
+  deleteFilter: IWorkItemFilterStore["deleteFilter"] = action((entityType, entityId, expectedFilterId) => {
+    const currentFilter = this.getFilter(entityType, entityId);
+    if (expectedFilterId && currentFilter?.id !== expectedFilterId) return;
     this.filters.delete(this._getFilterKey(entityType, entityId));
   });
 

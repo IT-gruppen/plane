@@ -202,14 +202,13 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
     groupValue: string,
     subGroupValue: string
   ) => {
-    const defaultState = projectState.projectStates?.find((state) => state.default);
-    let preloadedData: object = { state_id: defaultState?.id };
+    let preloadedData: Partial<TIssue> = {};
 
     if (groupByKey) {
       if (groupByKey === "state") {
         preloadedData = { ...preloadedData, state_id: groupValue };
       } else if (groupByKey === "priority") {
-        preloadedData = { ...preloadedData, priority: groupValue };
+        preloadedData = { ...preloadedData, priority: groupValue as TIssue["priority"] };
       } else if (groupByKey === "cycle") {
         preloadedData = { ...preloadedData, cycle_id: groupValue };
       } else if (groupByKey === "module") {
@@ -229,7 +228,7 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
       if (subGroupByKey === "state") {
         preloadedData = { ...preloadedData, state_id: subGroupValue };
       } else if (subGroupByKey === "priority") {
-        preloadedData = { ...preloadedData, priority: subGroupValue };
+        preloadedData = { ...preloadedData, priority: subGroupValue as TIssue["priority"] };
       } else if (subGroupByKey === "cycle") {
         preloadedData = { ...preloadedData, cycle_id: subGroupValue };
       } else if (subGroupByKey === "module") {
@@ -333,6 +332,7 @@ export const KanbanGroup = observer(function KanbanGroup(props: IKanbanGroup) {
             <QuickAddIssueRoot
               layout={EIssueLayoutTypes.KANBAN}
               QuickAddButton={KanbanQuickAddIssueButton}
+              fallbackData={{ state_id: projectState.projectStates?.find((state) => state.default)?.id }}
               prePopulatedData={{
                 ...(group_by && prePopulateQuickAddData(group_by, sub_group_by, groupId, sub_group_id)),
               }}

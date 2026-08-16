@@ -148,8 +148,7 @@ export const ListGroup = observer(function ListGroup(props: Props) {
   };
 
   const prePopulateQuickAddData = (groupByKey: string | null, value: any) => {
-    const defaultState = projectState.projectStates?.find((state) => state.default);
-    let preloadedData: object = { state_id: defaultState?.id };
+    let preloadedData: Partial<TIssue> = {};
 
     if (groupByKey === null) {
       preloadedData = { ...preloadedData };
@@ -336,6 +335,7 @@ export const ListGroup = observer(function ListGroup(props: Props) {
                 <QuickAddIssueRoot
                   layout={EIssueLayoutTypes.LIST}
                   QuickAddButton={ListQuickAddIssueButton}
+                  fallbackData={{ state_id: projectState.projectStates?.find((state) => state.default)?.id }}
                   prePopulatedData={prePopulateQuickAddData(group_by, group.id)}
                   containerClassName="border-b border-t border-subtle bg-surface-1 "
                   quickAddCallback={quickAddCallback}

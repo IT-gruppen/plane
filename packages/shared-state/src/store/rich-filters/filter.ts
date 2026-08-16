@@ -94,7 +94,11 @@ export interface IFilterInstance<P extends TFilterProperty, E extends TExternalF
   // visibility
   toggleVisibility: (isVisible?: boolean) => void;
   // filter expression actions
-  resetExpression: (externalExpression: E, shouldResetInitialExpression?: boolean) => void;
+  resetExpression: (
+    externalExpression: E,
+    shouldResetInitialExpression?: boolean,
+    shouldNotifyChange?: boolean
+  ) => void;
   // filter condition
   findConditionsByPropertyAndOperator: (
     property: P,
@@ -326,12 +330,12 @@ export class FilterInstance<P extends TFilterProperty, E extends TExternalFilter
    * @param externalExpression - The external expression to reset to.
    */
   resetExpression: IFilterInstance<P, E>["resetExpression"] = action(
-    (externalExpression, shouldResetInitialExpression = true) => {
+    (externalExpression, shouldResetInitialExpression = true, shouldNotifyChange = true) => {
       this.expression = this.helper.initializeExpression(externalExpression);
       if (shouldResetInitialExpression) {
         this._resetInitialFilterExpression();
       }
-      this._notifyExpressionChange();
+      if (shouldNotifyChange) this._notifyExpressionChange();
     }
   );
 
